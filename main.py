@@ -16,7 +16,7 @@ def main():
     load_dotenv()
     
     print("=" * 80)
-    print("🤖 LOG ANALYSIS AGENT")
+    print("LOG ANALYSIS AGENT")
     print("=" * 80)
     print()
     
@@ -32,7 +32,7 @@ def main():
         with open(log_file, 'r', encoding='utf-8') as f:
             logs = f.read()
     except FileNotFoundError:
-        print(f"❌ Error: File '{log_file}' not found")
+        print(f"[ERROR] File '{log_file}' not found")
         print("\nCreating sample log file...")
         
         # Create sample log
@@ -87,10 +87,10 @@ def main():
         f.write(final_state['final_report'])
     
     print("\n" + "=" * 80)
-    print("✅ ANALYSIS COMPLETE")
+    print("[SUCCESS] ANALYSIS COMPLETE")
     print("=" * 80)
-    print(f"\n📊 Total Issues Found: {final_state['error_count']}")
-    print(f"📄 Report saved to: {report_file}")
+    print(f"\n[INFO] Total Issues Found: {final_state['error_count']}")
+    print(f"[INFO] Report saved to: {report_file}")
     print("\n" + "=" * 80)
     
     # Display report preview

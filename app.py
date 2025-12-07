@@ -17,7 +17,7 @@ load_dotenv()
 # Page configuration
 st.set_page_config(
     page_title="Log Analysis Agent",
-    page_icon="🤖",
+    page_icon="logs",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -69,12 +69,12 @@ if 'workflow_app' not in st.session_state:
     st.session_state.workflow_app = create_workflow()
 
 # Header
-st.markdown("<h1 class='main-header'>🤖 Log Analysis Agent</h1>", unsafe_allow_html=True)
+st.markdown("<h1 class='main-header'>Log Analysis Agent</h1>", unsafe_allow_html=True)
 st.markdown("Intelligent log analysis using OpenAI, Wikipedia, Stack Overflow, and GitHub integration")
 
 # Sidebar configuration
 with st.sidebar:
-    st.header("⚙️ Configuration")
+    st.header("Configuration")
     
     st.subheader("API Keys Status")
     openai_key = os.getenv("OPENAI_API_KEY")
@@ -83,14 +83,14 @@ with st.sidebar:
     
     col1, col2 = st.columns(2)
     with col1:
-        st.metric("OpenAI", "✅" if openai_key else "❌")
-        st.metric("Tavily", "✅" if tavily_key else "❌")
+        st.metric("OpenAI", "[OK]" if openai_key else "[NOT SET]")
+        st.metric("Tavily", "[OK]" if tavily_key else "[NOT SET]")
     with col2:
-        st.metric("GitHub", "✅" if github_token else "❌")
+        st.metric("GitHub", "[OK]" if github_token else "[NOT SET]")
     
     st.divider()
     
-    st.subheader("📋 About")
+    st.subheader("About")
     st.info("""
     This tool analyzes log files and provides:
     - Error and warning extraction
@@ -101,7 +101,7 @@ with st.sidebar:
     """)
 
 # Main content tabs
-tab1, tab2, tab3, tab4 = st.tabs(["📥 Input", "🔍 Analysis", "📊 Results", "💾 Download"])
+tab1, tab2, tab3, tab4 = st.tabs(["Input", "Analysis", "Results", "Download"])
 
 with tab1:
     st.header("Step 1: Provide Log File")
@@ -118,8 +118,8 @@ with tab1:
         
         if uploaded_file is not None:
             logs = uploaded_file.read().decode('utf-8')
-            st.success(f"✅ Loaded: {uploaded_file.name}")
-            st.info(f"📏 Size: {len(logs)} characters")
+            st.success(f"[LOADED] {uploaded_file.name}")
+            st.info(f"[INFO] Size: {len(logs)} characters")
         else:
             logs = None
     
@@ -133,10 +133,10 @@ with tab1:
         
         if pasted_logs and not uploaded_file:
             logs = pasted_logs
-            st.success(f"✅ Pasted: {len(logs)} characters")
+            st.success(f"[PASTED] {len(logs)} characters")
     
     if not logs:
-        st.warning("⚠️ Please upload a file or paste log content")
+        st.warning("[WARNING] Please upload a file or paste log content")
         
         if st.button("Use Sample Log File"):
             sample_log = """2024-12-07 10:15:23 INFO Application started
@@ -150,7 +150,7 @@ with tab1:
 2024-12-07 10:17:00 CRITICAL Disk space low: 95% used"""
             logs = sample_log
             st.session_state.logs = logs
-            st.success("✅ Sample log loaded")
+            st.success("[LOADED] Sample log loaded")
             st.rerun()
     
     st.divider()
@@ -160,7 +160,7 @@ with tab1:
     
     with col1:
         github_repo = st.text_input(
-            "🔗 GitHub Repository URL (optional)",
+            "GitHub Repository URL (optional)",
             placeholder="https://github.com/username/repo",
             help="Enter GitHub repo URL for code analysis"
         )
@@ -182,23 +182,23 @@ with tab1:
     
     with col1:
         run_analysis = st.button(
-            "🚀 Start Analysis",
+            "Start Analysis",
             type="primary",
             use_container_width=True,
             disabled=not logs
         )
     
     with col2:
-        if st.button("🔄 Reset", use_container_width=True):
+        if st.button("Reset", use_container_width=True):
             st.session_state.analysis_complete = False
             st.session_state.final_state = None
             st.rerun()
 
 with tab2:
-    st.header("🔍 Analysis Progress")
+    st.header("Analysis Progress")
     
     if run_analysis and logs:
-        with st.spinner("🔄 Starting analysis..."):
+        with st.spinner("Starting analysis..."):
             progress_bar = st.progress(0)
             status_text = st.empty()
             
@@ -217,23 +217,23 @@ with tab2:
                 )
                 
                 # Run workflow
-                status_text.info("📋 Parsing logs...")
+                status_text.info("[*] Parsing logs...")
                 progress_bar.progress(20)
                 
-                status_text.info("🔍 Searching for solutions...")
+                status_text.info("[*] Searching for solutions...")
                 progress_bar.progress(40)
                 
-                status_text.info("📂 Analyzing code...")
+                status_text.info("[*] Analyzing code...")
                 progress_bar.progress(60)
                 
-                status_text.info("💡 Generating solutions...")
+                status_text.info("[*] Generating solutions...")
                 progress_bar.progress(80)
                 
-                status_text.info("📄 Building report...")
+                status_text.info("[*] Building report...")
                 final_state = st.session_state.workflow_app.invoke(initial_state)
                 
                 progress_bar.progress(100)
-                status_text.success("✅ Analysis complete!")
+                status_text.success("[SUCCESS] Analysis complete!")
                 
                 st.session_state.analysis_complete = True
                 st.session_state.final_state = final_state
@@ -241,18 +241,18 @@ with tab2:
                 st.rerun()
                 
             except Exception as e:
-                st.error(f"❌ Error during analysis: {str(e)}")
+                st.error(f"[ERROR] Error during analysis: {str(e)}")
                 st.error("Please check your API keys and log content")
     
     elif st.session_state.analysis_complete and st.session_state.final_state:
-        st.success("✅ Analysis completed successfully!")
+        st.success("[SUCCESS] Analysis completed successfully!")
         st.info("Check the 'Results' tab to view detailed findings")
     
     else:
-        st.info("👈 Click 'Start Analysis' to begin")
+        st.info("[INFO] Click 'Start Analysis' to begin")
 
 with tab3:
-    st.header("📊 Analysis Results")
+    st.header("Analysis Results")
     
     if st.session_state.analysis_complete and st.session_state.final_state:
         final_state = st.session_state.final_state
@@ -277,7 +277,7 @@ with tab3:
         st.divider()
         
         # Parsed Errors
-        st.subheader("🚨 Parsed Errors & Warnings")
+        st.subheader("Parsed Errors & Warnings")
         
         if final_state['parsed_errors']:
             for idx, error in enumerate(final_state['parsed_errors'], 1):
@@ -300,12 +300,12 @@ with tab3:
                         else:
                             st.markdown('<span class="warning-badge">WARNING</span>', unsafe_allow_html=True)
         else:
-            st.info("✅ No errors or warnings found!")
+            st.info("[SUCCESS] No errors or warnings found!")
         
         st.divider()
         
         # Search Results
-        st.subheader("🔗 External Research Results")
+        st.subheader("External Research Results")
         
         if final_state['search_results']:
             for idx, result in enumerate(final_state['search_results'], 1):
@@ -329,7 +329,7 @@ with tab3:
         st.divider()
         
         # Solutions
-        st.subheader("💡 AI-Generated Solutions")
+        st.subheader("AI-Generated Solutions")
         
         if final_state['solutions']:
             for idx, solution in enumerate(final_state['solutions'], 1):
@@ -344,16 +344,16 @@ with tab3:
         st.divider()
         
         # Final Report
-        st.subheader("📄 Complete Report")
+        st.subheader("Complete Report")
         
         if final_state['final_report']:
             st.markdown(final_state['final_report'])
     
     else:
-        st.info("👈 Complete analysis first to see results")
+        st.info("[INFO] Complete analysis first to see results")
 
 with tab4:
-    st.header("💾 Download Report")
+    st.header("Download Report")
     
     if st.session_state.analysis_complete and st.session_state.final_state:
         final_state = st.session_state.final_state
@@ -366,7 +366,7 @@ with tab4:
         
         with col1:
             st.download_button(
-                label="📄 Download as Markdown",
+                label="Download as Markdown",
                 data=report_content,
                 file_name=f"log_analysis_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md",
                 mime="text/markdown",
@@ -377,7 +377,7 @@ with tab4:
             # Convert to plain text
             text_content = report_content.replace("# ", "").replace("## ", "").replace("### ", "")
             st.download_button(
-                label="📝 Download as Text",
+                label="Download as Text",
                 data=text_content,
                 file_name=f"log_analysis_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
                 mime="text/plain",
@@ -394,7 +394,7 @@ with tab4:
                 "report": report_content
             }
             st.download_button(
-                label="📋 Download as JSON",
+                label="Download as JSON",
                 data=json.dumps(json_data, indent=2),
                 file_name=f"log_analysis_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
                 mime="application/json",
@@ -404,18 +404,18 @@ with tab4:
         st.divider()
         
         # Report preview
-        st.subheader("📋 Report Preview")
+        st.subheader("Report Preview")
         st.markdown(final_state['final_report'][:2000])
-        st.info("👆 See the full report above or download it")
+        st.info("[INFO] See the full report above or download it")
     
     else:
-        st.info("👈 Complete analysis first to download report")
+        st.info("[INFO] Complete analysis first to download report")
 
 # Footer
 st.divider()
 st.markdown("""
 <div style='text-align: center; color: gray; margin-top: 30px;'>
-    <p>🤖 Log Analysis Agent | Powered by OpenAI, LangGraph & Streamlit</p>
+    <p>Log Analysis Agent | Powered by OpenAI, LangGraph & Streamlit</p>
     <p>© 2024 | All rights reserved</p>
 </div>
 """, unsafe_allow_html=True)

@@ -22,7 +22,7 @@ class AgentNodes:
     
     def parse_logs_node(self, state: AgentState) -> AgentState:
         """Node 1: Parse logs and extract errors"""
-        print("📋 Parsing logs...")
+        print("[*] Parsing logs...")
         
         parsed_errors = self.parser.parse_logs(state['logs'])
         
@@ -30,19 +30,19 @@ class AgentNodes:
         state['error_count'] = len(parsed_errors)
         state['status'] = f"Found {len(parsed_errors)} issues"
         
-        print(f"✓ Found {len(parsed_errors)} errors/warnings")
+        print(f"[+] Found {len(parsed_errors)} errors/warnings")
         return state
     
     def search_solutions_node(self, state: AgentState) -> AgentState:
         """Node 2: Search external sources for solutions"""
-        print("🔍 Searching for solutions...")
+        print("[*] Searching for solutions...")
         
         search_results = []
         
         for error in state['parsed_errors'][:5]:  # Limit to top 5 errors
             error_query = error['message'][:100]  # Truncate long messages
             
-            print(f"  Searching for: {error_query[:50]}...")
+            print(f"  [*] Searching for: {error_query[:50]}...")
             
             # Search Wikipedia
             wiki_result = self.tools.search_wikipedia(error_query)
@@ -58,17 +58,17 @@ class AgentNodes:
         
         # Return updated state with search_results
         state['search_results'] = search_results
-        print(f"✓ Completed external searches")
+        print(f"[+] Completed external searches")
         return state
     
     def analyze_code_node(self, state: AgentState) -> AgentState:
         """Node 3: Analyze GitHub repository if provided"""
         if not state.get('github_repo'):
-            print("⏭️  No GitHub repo provided, skipping code analysis")
+            print("[!] No GitHub repo provided, skipping code analysis")
             state['code_analysis'] = None
             return state
         
-        print(f"📂 Analyzing GitHub repository: {state['github_repo']}")
+        print(f"[*] Analyzing GitHub repository: {state['github_repo']}")
         
         # Extract error keywords for searching
         error_keywords = [e['message'].split()[0] for e in state['parsed_errors'][:5]]
@@ -77,12 +77,12 @@ class AgentNodes:
         analysis = self.tools.analyze_github_repo(state['github_repo'], error_keywords)
         
         state['code_analysis'] = json.dumps(analysis, indent=2)
-        print(f"✓ Code analysis complete")
+        print(f"[+] Code analysis complete")
         return state
     
     def generate_solutions_node(self, state: AgentState) -> AgentState:
         """Node 4: Generate comprehensive solutions using LLM"""
-        print("💡 Generating solutions...")
+        print("[*] Generating solutions...")
         
         prompt = f"""You are an expert DevOps engineer analyzing application logs.
 
@@ -122,12 +122,12 @@ Return your analysis as a JSON array of solutions."""
             solutions = [{'analysis': response.content}]
         
         state['solutions'] = solutions
-        print(f"✓ Generated {len(solutions)} solutions")
+        print(f"[+] Generated {len(solutions)} solutions")
         return state
     
     def build_report_node(self, state: AgentState) -> AgentState:
         """Node 5: Build final report"""
-        print("📄 Building final report...")
+        print("[*] Building final report...")
         
         prompt = f"""Create a professional log analysis report in Markdown format.
 
@@ -166,5 +166,5 @@ Keep it professional, actionable, and well-formatted."""
         response = self.llm.invoke(prompt)
         state['final_report'] = response.content
         
-        print("✓ Report generated successfully")
+        print("[+] Report generated successfully")
         return state
