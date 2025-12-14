@@ -70,7 +70,7 @@ if 'workflow_app' not in st.session_state:
 
 # Header
 st.markdown("<h1 class='main-header'>Log Analysis Agent</h1>", unsafe_allow_html=True)
-st.markdown("Intelligent log analysis using OpenAI, Wikipedia, Stack Overflow, and GitHub integration")
+st.markdown("Intelligent log analysis using OpenAI, Reddit, Stack Overflow, and GitHub integration")
 
 # Sidebar configuration
 with st.sidebar:
@@ -230,7 +230,9 @@ with tab2:
                 progress_bar.progress(80)
                 
                 status_text.info("[*] Building report...")
-                final_state = st.session_state.workflow_app.invoke(initial_state)
+                # Run async workflow using asyncio.run()
+                import asyncio
+                final_state = asyncio.run(st.session_state.workflow_app.ainvoke(initial_state))
                 
                 progress_bar.progress(100)
                 status_text.success("[SUCCESS] Analysis complete!")
@@ -241,7 +243,10 @@ with tab2:
                 st.rerun()
                 
             except Exception as e:
+                import traceback
                 st.error(f"[ERROR] Error during analysis: {str(e)}")
+                with st.expander("Details"):
+                    st.code(traceback.format_exc())
                 st.error("Please check your API keys and log content")
     
     elif st.session_state.analysis_complete and st.session_state.final_state:
@@ -274,6 +279,62 @@ with tab3:
         with col4:
             st.metric("Solutions Found", len(final_state['solutions']))
         
+        st.divider()
+
+        # Visualizations (Enhancement)
+        import plotly.express as px
+        import pandas as pd
+        
+        st.subheader("Visual Analysis")
+        viz_col1, viz_col2 = st.columns(2)
+        
+        with viz_col1:
+            # Severity Distribution
+            severity_counts = {}
+            for e in final_state['parsed_errors']:
+                sev = e.get('severity', 'UNKNOWN')
+                severity_counts[sev] = severity_counts.get(sev, 0) + 1
+            
+            if severity_counts:
+                df_sev = pd.DataFrame(list(severity_counts.items()), columns=['Severity', 'Count'])
+                fig_pie = px.pie(
+                    df_sev, 
+                    values='Count', 
+                    names='Severity', 
+                    title='Issue Severity Distribution',
+                    color='Severity',
+                    color_discrete_map={'HIGH': 'red', 'MEDIUM': 'orange', 'LOW': 'green', 'CRITICAL': 'darkred', 'UNKNOWN': 'grey'}
+                )
+                st.plotly_chart(fig_pie, use_container_width=True)
+            else:
+                st.info("No severity data available to plot")
+                
+        with viz_col2:
+            # Timeline Visualization (if timestamps exist)
+            valid_dates = []
+            for e in final_state['parsed_errors']:
+                if e.get('timestamp') and e['timestamp'] != 'N/A':
+                    try:
+                        # Attempt to parse common date formats if needed, or use string handling
+                        valid_dates.append({'time': e['timestamp'], 'message': e['message'][:30], 'severity': e.get('severity', 'UNKNOWN')})
+                    except:
+                        pass
+            
+            if valid_dates:
+                df_time = pd.DataFrame(valid_dates)
+                fig_time = px.scatter(
+                    df_time, 
+                    x='time', 
+                    y='severity', 
+                    hover_data=['message'],
+                    title='Incident Timeline',
+                    color='severity',
+                    size_max=20
+                )
+                st.plotly_chart(fig_time, use_container_width=True)
+            else:
+                st.info("No timestamp data available for timeline")
+
         st.divider()
         
         # Parsed Errors

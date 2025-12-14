@@ -7,6 +7,7 @@ from agent.state import AgentState
 from agent.tools import ExternalTools
 from utils.parsers import LogParser
 import json
+import asyncio
 
 class AgentNodes:
     """Node implementations for the LangGraph workflow"""
@@ -80,6 +81,26 @@ class AgentNodes:
         print(f"[+] Code analysis complete")
         return state
     
+    async def enrich_data_node(self, state: AgentState) -> AgentState:
+        """Parallel Node: Run search and code analysis concurrently"""
+        print("[*] Enriching data (Parallel Execution)...")
+        loop = asyncio.get_running_loop()
+        
+        # Run synchronous nodes in thread pool
+        future_search = loop.run_in_executor(None, self.search_solutions_node, state.copy())
+        future_analysis = loop.run_in_executor(None, self.analyze_code_node, state.copy())
+        
+        # Wait for both
+        results = await asyncio.gather(future_search, future_analysis)
+        search_state, analysis_state = results
+        
+        # Merge results back into main state
+        state['search_results'] = search_state.get('search_results', [])
+        state['code_analysis'] = analysis_state.get('code_analysis')
+        
+        print(f"[+] Enrichment complete. Search items: {len(state['search_results'])}")
+        return state
+
     def generate_solutions_node(self, state: AgentState) -> AgentState:
         """Node 4: Generate comprehensive solutions using LLM"""
         print("[*] Generating solutions...")
