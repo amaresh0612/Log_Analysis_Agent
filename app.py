@@ -101,7 +101,7 @@ with st.sidebar:
     """)
 
 # Main content tabs
-tab1, tab2, tab3, tab4 = st.tabs(["Input", "Analysis", "Results", "Download"])
+tab1, tab2, tab3, tab4, tab5 = st.tabs(["Input", "Analysis", "Results", "Chat", "Download"])
 
 with tab1:
     st.header("Step 1: Provide Log File")
@@ -336,6 +336,45 @@ with tab3:
                 st.info("No timestamp data available for timeline")
 
         st.divider()
+
+        # Dependency Graph (Enhancement)
+        import graphviz
+        st.subheader("Service Dependency Graph")
+        
+        # Build graph from stack traces
+        graph = graphviz.Digraph()
+        edges = set()
+        
+        for e in final_state['parsed_errors']:
+            if e.get('stack_trace'):
+                lines = e['stack_trace'].split('\n')
+                # Extract simple "at Class.method" calls to build edges
+                calls = []
+                for line in lines:
+                    if 'at ' in line:
+                        # Extract class name (simplified)
+                        try:
+                            part = line.split('at ')[1].split('(')[0]
+                            # Get just Class.Method
+                            if '.' in part:
+                                calls.append(part)
+                        except:
+                            pass
+                
+                # Create edges: Call A -> Call B (reverse stack order often implies dependency)
+                for i in range(len(calls) - 1, 0, -1):
+                    caller = calls[i]
+                    callee = calls[i-1]
+                    if (caller, callee) not in edges:
+                        graph.edge(caller, callee)
+                        edges.add((caller, callee))
+        
+        if edges:
+            st.graphviz_chart(graph)
+        else:
+            st.info("No stack traces found to build dependency graph")
+
+        st.divider()
         
         # Parsed Errors
         st.subheader("Parsed Errors & Warnings")
@@ -413,7 +452,80 @@ with tab3:
     else:
         st.info("[INFO] Complete analysis first to see results")
 
+
 with tab4:
+    st.header("Chat with your Logs")
+    
+    if st.session_state.analysis_complete and st.session_state.final_state:
+        # Initialize chat history
+        if "messages" not in st.session_state:
+            st.session_state.messages = []
+
+        # Container for chat history
+        chat_container = st.container()
+        
+        # Display chat messages from history
+        with chat_container:
+            for message in st.session_state.messages:
+                with st.chat_message(message["role"]):
+                    st.markdown(message["content"])
+
+        st.divider()
+        
+        # Input area (using form for better alignment and Enter key support)
+        with st.form(key="chat_form", clear_on_submit=True):
+            col1, col2 = st.columns([5, 1])
+            with col1:
+                user_input = st.text_input(
+                    "Ask a question:", 
+                    key="chat_input_box", 
+                    label_visibility="collapsed",
+                    placeholder="Ask a question about the logs..."
+                )
+            with col2:
+                # Add a little spacing if needed, but collapsed label usually aligns well
+                send_button = st.form_submit_button("Send", type="primary", use_container_width=True)
+            
+        if send_button and user_input:
+            # Add user message
+            st.session_state.messages.append({"role": "user", "content": user_input})
+            
+            # Prepare context
+            final_state = st.session_state.final_state
+            context = f"""
+            LOG ANALYSIS CONTEXT:
+            - Error Count: {final_state['error_count']}
+            - Parsed Errors: {json.dumps(final_state['parsed_errors'][:10], indent=2)} (truncated)
+            - Solutions: {json.dumps(final_state['solutions'][:3], indent=2)} (truncated)
+            - Repository: {final_state.get('github_repo')}
+            """
+            
+            # Generate response
+            from langchain_openai import ChatOpenAI
+            from langchain_core.messages import HumanMessage, SystemMessage
+            
+            llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+            
+            # Generate response
+            with st.spinner("Thinking..."):
+                resp = llm.invoke([
+                    SystemMessage(content=f"You are a helpful DevOps assistant. Answer based on this log context:\n{context}"),
+                    HumanMessage(content=user_input)
+                ])
+                full_response = resp.content
+            
+            # Add assistant response to chat history
+            st.session_state.messages.append({"role": "assistant", "content": full_response})
+            st.rerun()
+            
+    else:
+        st.info("[INFO] Complete analysis first to unlock the chat interface")
+
+
+
+
+
+with tab5:
     st.header("Download Report")
     
     if st.session_state.analysis_complete and st.session_state.final_state:
